@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>PAT — Personal Assistant & Triage</title>
+  <style>
+    :root{--bg:#f4f4f2;--card:#fff;--text:#111;--muted:#6f6f6f;--line:#deded9;--accent:#111;--soft:#ecece7;--danger:#a11}
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:760px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+    header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+    h1{font-size:30px;line-height:1;margin:0}.date{color:var(--muted);font-size:14px;margin-top:7px}
+    .pill{border:1px solid var(--line);background:var(--card);padding:8px 11px;border-radius:999px;font-size:13px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+    h2{font-size:17px;margin:0 0 12px}.sub{font-size:13px;color:var(--muted);margin-top:-5px;margin-bottom:12px}
+    .row{display:flex;gap:8px}.row>*{flex:1}
+    input,textarea,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font:inherit;color:var(--text)}
+    textarea{min-height:88px;resize:vertical}
+    button{border:0;border-radius:12px;padding:12px 14px;font:inherit;font-weight:650;background:var(--accent);color:#fff;cursor:pointer}
+    button.secondary{background:var(--soft);color:var(--text)} button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+    .task{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:11px 0;border-top:1px solid var(--line)} .task:first-child{border-top:0;padding-top:0}
+    .task.done .task-title{text-decoration:line-through;color:var(--muted)}.task-title{font-weight:650}.meta{font-size:12px;color:var(--muted);margin-top:3px}.check{width:22px;height:22px;margin-top:1px}
+    .delete{background:transparent;color:var(--muted);padding:3px 6px;font-size:18px}.empty{color:var(--muted);font-size:14px;padding:4px 0}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.ai{grid-column:1/-1}
+    .brain-items{margin-top:10px}.brain{padding:10px 0;border-top:1px solid var(--line);font-size:14px}.brain:first-child{border-top:0}
+    footer{color:var(--muted);font-size:12px;text-align:center;margin-top:20px}
+    @media (max-width:520px){.row{flex-direction:column}.actions{grid-template-columns:1fr}.ai{grid-column:auto}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>PAT</h1><div class="date" style="margin-top:3px">Personal Assistant &amp; Triage</div><div class="date" id="todayDate"></div></div>
+    <div class="pill" id="openCount">0 open</div>
+  </header>
+
+  <section class="card">
+    <h2>Today</h2>
+    <div class="sub">The stuff actually worth dealing with.</div>
+    <div id="todayTasks"></div>
+  </section>
+
+  <section class="card">
+    <h2>Add task</h2>
+    <div class="row">
+      <input id="taskText" placeholder="e.g. Buy suitcases" />
+      <select id="priority" aria-label="Priority">
+        <option value="2">Normal</option><option value="1">High</option><option value="3">Low</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="dueDate" type="date" />
+      <button id="addTask">Add</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Brain dump</h2>
+    <div class="sub">Chuck it in here before your brain decides to keep refreshing it every 90 seconds.</div>
+    <textarea id="brainText" placeholder="Need to remember / sort / investigate..."></textarea>
+    <div class="actions">
+      <button id="saveBrain" class="secondary">Save note</button>
+      <button id="brainToTask" class="ghost">Turn into task</button>
+    </div>
+    <div id="brainItems" class="brain-items"></div>
+  </section>
+
+  <section class="card">
+    <h2>AI help</h2>
+    <div class="sub">Builds a clean prompt from your current tasks, then opens ChatGPT.</div>
+    <div class="actions">
+      <button class="ai" id="aiHandoff">Prepare today for ChatGPT</button>
+      <button class="secondary" id="copyTasks">Copy open tasks</button>
+      <button class="ghost" id="exportData">Export backup</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>All tasks</h2>
+    <div id="allTasks"></div>
+  </section>
+
+  <footer>Local-first V1 · your data stays in this browser</footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
