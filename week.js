@@ -15,6 +15,18 @@
     });
     if(changed)localStorage.setItem('pat-v2',JSON.stringify(state));
   }
+  function normaliseMailQueue(){
+    let changed=false;
+    state.triage=(state.triage||[]).map(m=>{
+      if(m.source!=='iCloud Mail'||m.unread!==true)return m;
+      changed=true;
+      return {...m,unread:false,score:Math.max(-5,(Number(m.score)||0)-1)};
+    });
+    if(changed)localStorage.setItem('pat-v2',JSON.stringify(state));
+    const mailRow=[...document.querySelectorAll('.connection')].find(r=>r.querySelector('strong')?.textContent==='iCloud Mail');
+    const note=mailRow?.querySelector('small');
+    if(note)note.textContent='Read + unread · action triage';
+  }
   function installWeek(){
     if(document.getElementById('patWeek'))return;
     const anchor=document.getElementById('patReality')||document.getElementById('patTimeline');
@@ -26,6 +38,7 @@
   }
   function renderWeek(){
     installWeek();
+    normaliseMailQueue();
     const host=document.getElementById('weekDays');if(!host)return;
     normaliseEventDates();
     const today=new Date();today.setHours(0,0,0,0);
