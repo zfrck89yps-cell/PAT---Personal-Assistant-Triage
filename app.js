@@ -1,51 +1,32 @@
-const KEY='pat-v1';
-let state=JSON.parse(localStorage.getItem(KEY)||'{"tasks":[],"brain":[]}');
-const $=id=>document.getElementById(id);
-const save=()=>{localStorage.setItem(KEY,JSON.stringify(state));render();};
+const KEY='pat-v2';
+const legacy=JSON.parse(localStorage.getItem('pat-v1')||'{"tasks":[],"brain":[]}');
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{tasks:legacy.tasks||[],brain:legacy.brain||[],events:[],triage:[],research:[],lastSync:null};
+const $=id=>document.getElementById(id), q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+const todayISO=()=>new Date().toLocaleDateString('en-CA');
 const esc=s=>(s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const todayISO=()=>new Date().toISOString().slice(0,10);
-
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(state));render();};
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
+function fmtDate(d){if(!d)return'';return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(new Date(d+'T12:00:00'))}
+function fmtTime(v){if(!v)return'';const d=new Date(v);return isNaN(d)?v:new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit'}).format(d)}
 $('todayDate').textContent=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
+$('greeting').textContent=(new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening')+'.';
 $('dueDate').value=todayISO();
-
-function addTask(text,due,priority=2){
-  text=text.trim(); if(!text)return;
-  state.tasks.unshift({id:crypto.randomUUID(),text,due:due||'',priority:Number(priority),done:false,created:Date.now()}); save();
-}
-
-function taskHtml(t){
-  const overdue=t.due && t.due<todayISO() && !t.done;
-  const meta=[t.due?new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(new Date(t.due+'T12:00:00')):'',t.priority===1?'High priority':'',overdue?'Overdue':''].filter(Boolean).join(' · ');
-  return `<div class="task ${t.done?'done':''}"><input class="check" type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')"><div><div class="task-title">${esc(t.text)}</div>${meta?`<div class="meta">${esc(meta)}</div>`:''}</div><button class="delete" onclick="deleteTask('${t.id}')">×</button></div>`;
-}
-
-window.toggleTask=id=>{const t=state.tasks.find(x=>x.id===id); if(t){t.done=!t.done;save();}};
-window.deleteTask=id=>{state.tasks=state.tasks.filter(x=>x.id!==id);save();};
-
-function render(){
-  const open=state.tasks.filter(t=>!t.done);
-  $('openCount').textContent=`${open.length} open`;
-  const todays=[...open].filter(t=>!t.due||t.due<=todayISO()).sort((a,b)=>a.priority-b.priority||String(a.due).localeCompare(String(b.due)));
-  $('todayTasks').innerHTML=todays.length?todays.slice(0,5).map(taskHtml).join(''):'<div class="empty">Nothing screaming for attention. Suspicious.</div>';
-  $('allTasks').innerHTML=state.tasks.length?[...state.tasks].sort((a,b)=>Number(a.done)-Number(b.done)||a.priority-b.priority).map(taskHtml).join(''):'<div class="empty">No tasks yet.</div>';
-  $('brainItems').innerHTML=state.brain.slice(0,5).map(n=>`<div class="brain">${esc(n.text)}<div class="meta">${new Date(n.created).toLocaleString('en-GB')}</div></div>`).join('');
-}
-
-$('addTask').onclick=()=>{addTask($('taskText').value,$('dueDate').value,$('priority').value);$('taskText').value='';};
-$('taskText').addEventListener('keydown',e=>{if(e.key==='Enter')$('addTask').click();});
-$('saveBrain').onclick=()=>{const text=$('brainText').value.trim();if(!text)return;state.brain.unshift({id:crypto.randomUUID(),text,created:Date.now()});$('brainText').value='';save();};
-$('brainToTask').onclick=()=>{addTask($('brainText').value,todayISO(),2);$('brainText').value='';};
-
-function openTaskText(){return state.tasks.filter(t=>!t.done).map(t=>`- ${t.text}${t.due?` (due ${t.due})`:''}${t.priority===1?' [HIGH]':''}`).join('\n');}
-$('copyTasks').onclick=async()=>{await navigator.clipboard.writeText(openTaskText()||'No open tasks'); alert('Open tasks copied.');};
-$('aiHandoff').onclick=async()=>{
-  const prompt=`Act as my practical personal assistant. Here are my current open tasks:\n\n${openTaskText()||'- None'}\n\nDo three things:\n1. Decide what is realistically worth doing today.\n2. Flag anything that needs research, buying, booking or a drafted message.\n3. For anything you can actively help with now, start doing that work rather than just telling me to do it.\n\nKeep it concise and prioritised.`;
-  await navigator.clipboard.writeText(prompt);
-  window.location.href='https://chatgpt.com/';
-};
-$('exportData').onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pat-backup.json';a.click();URL.revokeObjectURL(a.href);
-};
-
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
-render();
+function addTask(text,due='',priority=2){text=text.trim();if(!text)return;state.tasks.unshift({id:crypto.randomUUID(),text,due,priority:Number(priority),done:false,created:Date.now()});save()}
+window.toggleTask=id=>{const t=state.tasks.find(x=>x.id===id);if(t){t.done=!t.done;save()}};
+window.deleteTask=id=>{state.tasks=state.tasks.filter(x=>x.id!==id);save()};
+window.deleteResearch=id=>{state.research=state.research.filter(x=>x.id!==id);save()};
+function taskHtml(t){const overdue=t.due&&t.due<todayISO()&&!t.done;const meta=[t.due?`${overdue?'Overdue · ':''}${fmtDate(t.due)}`:'',t.priority===1?'High priority':''].filter(Boolean).join(' · ');return `<div class="item ${t.done?'done':''}"><input class="check" type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')"><div><div class="title">${esc(t.text)}</div>${meta?`<div class="meta">${esc(meta)}</div>`:''}</div><button class="iconBtn" onclick="deleteTask('${t.id}')">×</button></div>`}
+function eventHtml(e){const when=e.allDay?'All day':fmtTime(e.start);return `<div class="item"><span class="dot event"></span><div><div class="title">${esc(e.title)}</div><div class="meta">${esc(when)}${e.calendar?` · ${esc(e.calendar)}`:''}</div></div></div>`}
+function triageHtml(t){return `<div class="item"><span class="dot inbox"></span><div><div class="title">${esc(t.title)}</div><div class="meta">${esc(t.source||'PAT')} · ${esc(t.note||'Needs review')}</div></div></div>`}
+function researchHtml(r){return `<div class="researchCard"><div class="item" style="padding:0;border:0"><span class="dot research"></span><div><div class="title">${esc(r.text)}</div><div class="meta">Queued ${new Date(r.created).toLocaleDateString('en-GB')}</div></div><button class="iconBtn" onclick="deleteResearch('${r.id}')">×</button></div><div class="actions"><button class="primary" onclick="researchWithGPT('${r.id}')">Research with ChatGPT</button></div></div>`}
+window.researchWithGPT=async id=>{const r=state.research.find(x=>x.id===id);if(!r)return;const p=`Act as my personal assistant. Research this task for me now: ${r.text}. Use current web information where relevant. Give me a concise shortlist, prices/links where applicable, and a clear recommendation. Do the research rather than giving me instructions.`;await navigator.clipboard.writeText(p);toast('Prompt copied — opening ChatGPT');setTimeout(()=>location.href='https://chatgpt.com/',350)};
+function render(){const open=state.tasks.filter(t=>!t.done),due=open.filter(t=>t.due&&t.due<=todayISO()),events=state.events.filter(e=>(e.date||String(e.start||'').slice(0,10))===todayISO());$('mTasks').textContent=open.length;$('mToday').textContent=due.length;$('mEvents').textContent=events.length;$('mTriage').textContent=state.triage.length;$('briefLine').textContent=due.length||events.length||state.triage.length?'Here’s what deserves your attention.':'Nothing urgent is shouting at you. Suspiciously civilised.';const priority=[...open].filter(t=>t.priority===1||!t.due||t.due<=todayISO()).sort((a,b)=>a.priority-b.priority||String(a.due).localeCompare(String(b.due))).slice(0,6);$('todayTasks').innerHTML=priority.length?priority.map(taskHtml).join(''):'<div class="empty">No urgent tasks.</div>';$('todayEvents').innerHTML=events.length?events.sort((a,b)=>String(a.start).localeCompare(String(b.start))).map(eventHtml).join(''):'<div class="empty">No calendar events imported for today.</div>';$('triageItems').innerHTML=state.triage.length?state.triage.slice(0,6).map(triageHtml).join(''):'<div class="empty">Nothing waiting for triage.</div>';const f=q('.filter.active')?.dataset.filter||'open';let tasks=[...state.tasks];if(f==='open')tasks=tasks.filter(t=>!t.done);if(f==='today')tasks=tasks.filter(t=>!t.done&&(!t.due||t.due<=todayISO()));tasks.sort((a,b)=>Number(a.done)-Number(b.done)||a.priority-b.priority||String(a.due).localeCompare(String(b.due)));$('allTasks').innerHTML=tasks.length?tasks.map(taskHtml).join(''):'<div class="empty">No tasks in this view.</div>';$('brainItems').innerHTML=state.brain.slice(0,8).map(n=>`<div class="item"><span class="dot"></span><div><div class="title">${esc(n.text)}</div><div class="meta">${new Date(n.created).toLocaleString('en-GB')}</div></div></div>`).join('')||'<div class="empty">Brain pleasantly empty. For now.</div>';$('researchItems').innerHTML=state.research.length?state.research.map(researchHtml).join(''):'<div class="empty">No research jobs queued.</div>';if(state.lastSync){$('syncStatus').textContent=`Synced · ${new Date(state.lastSync).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;$('calendarBadge').textContent='Connected';$('calendarBadge').classList.add('ready')}}
+function nav(name){qa('.screen').forEach(s=>s.classList.toggle('active',s.dataset.screen===name));qa('nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));scrollTo({top:0,behavior:'smooth'})}
+qa('[data-nav]').forEach(b=>b.onclick=()=>nav(b.dataset.nav));q('[data-action="capture"]').onclick=()=>nav('capture');q('[data-action="brief"]').onclick=async()=>{const tasks=state.tasks.filter(t=>!t.done).map(t=>`- ${t.text}${t.due?` (due ${t.due})`:''}`).join('\n')||'- None';const ev=state.events.filter(e=>(e.date||String(e.start||'').slice(0,10))===todayISO()).map(e=>`- ${e.title} ${e.allDay?'all day':fmtTime(e.start)}`).join('\n')||'- None';const p=`You are PAT, my practical personal assistant. Triage my day using this context.\n\nCALENDAR\n${ev}\n\nTASKS\n${tasks}\n\nDecide what is genuinely worth doing today, flag clashes or time pressure, identify anything you can actively research/draft/compare for me, and keep it concise. If something can be done by you now, start doing it.`;await navigator.clipboard.writeText(p);toast('Daily briefing copied');setTimeout(()=>location.href='https://chatgpt.com/',350)};
+$('addTask').onclick=()=>{addTask($('taskText').value,$('dueDate').value,$('priority').value);$('taskText').value=''};$('saveBrain').onclick=()=>{const t=$('brainText').value.trim();if(!t)return;state.brain.unshift({id:crypto.randomUUID(),text:t,created:Date.now()});$('brainText').value='';save()};$('brainToTask').onclick=()=>{addTask($('brainText').value,todayISO(),2);$('brainText').value='';nav('tasks')};$('addResearch').onclick=()=>{const t=$('researchText').value.trim();if(!t)return;state.research.unshift({id:crypto.randomUUID(),text:t,created:Date.now()});$('researchText').value='';save()};qa('.filter').forEach(b=>b.onclick=()=>{qa('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()});
+$('exportData').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PAT-backup.json';a.click();URL.revokeObjectURL(a.href)};
+function importPayload(data){if(!data||typeof data!=='object')return;if(Array.isArray(data.events))state.events=data.events;if(Array.isArray(data.reminders))data.reminders.forEach(r=>{if(!state.tasks.some(t=>t.externalId&&t.externalId===r.id))state.tasks.push({id:crypto.randomUUID(),externalId:r.id,text:r.title,due:r.due||'',priority:r.priority||2,done:!!r.done,created:Date.now()})});if(Array.isArray(data.triage))state.triage=data.triage;state.lastSync=Date.now();save();toast('PAT synced')}
+window.PAT_import=importPayload;
+const params=new URLSearchParams(location.search);if(params.get('data')){try{importPayload(JSON.parse(decodeURIComponent(params.get('data'))));history.replaceState({},'',location.pathname)}catch(e){console.warn(e)}}
+$('importDemo').onclick=()=>importPayload({events:[{id:'demo-1',title:'Example calendar appointment',start:new Date(Date.now()+3600000).toISOString(),date:todayISO(),calendar:'Calendar'}]});
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');render();
