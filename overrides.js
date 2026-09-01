@@ -41,36 +41,52 @@
       const starts=linesBetween(raw,'[STARTS]','[REMINDERS]');
       const reminders=linesBetween(raw,'[REMINDERS]','[MAIL]');
       const mail=linesBetween(raw,'[MAIL]','[END]');
-      const events=titles.map((title,i)=>({
-        id:`simple-cal-${i}-${title}`,
-        title,
-        start:starts[i]||'',
-        date:todayISO(),
-        allDay:false,
-        calendar:'Apple Calendar'
-      }));
-      const reminderPayload=reminders.map((title,i)=>({
-        id:`simple-rem-${i}-${title}`,
-        title,
-        due:'',
-        done:false,
-        source:'Apple Reminders'
-      }));
-      const mailPayload=mail.map((subject,i)=>({
-        id:`simple-mail-${i}-${subject}`,
-        sender:'',
-        subject,
-        preview:'',
-        unread:true
-      }));
+      const events=titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title,start:starts[i]||'',date:todayISO(),allDay:false,calendar:'Apple Calendar'}));
+      const reminderPayload=reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title,due:'',done:false,source:'Apple Reminders'}));
+      const mailPayload=mail.map((subject,i)=>({id:`simple-mail-${i}-${subject}`,sender:'',subject,preview:'',unread:true}));
       importPayload({events,reminders:reminderPayload,mail:mailPayload});
       history.replaceState({},'',location.pathname);
       if(typeof toast==='function')toast('PAT synced from iPhone');
     }catch(e){console.warn('Simple PAT Sync failed',e);if(typeof toast==='function')toast('Sync data could not be read')}
   }
 
+  function installTodayStructure(){
+    const today=document.querySelector('.screen[data-screen="today"]');
+    if(!today||document.getElementById('patTimeline'))return;
+    const signalRow=today.querySelector('.signalRow');
+    const assessment=today.querySelector('.sectionTitle');
+    if(signalRow){
+      const block=document.createElement('section');
+      block.className='patSection';
+      block.id='patTimeline';
+      block.innerHTML='<div class="patSectionHead"><b>Today</b><span>your day at a glance</span></div><div class="timeline" id="timelineItems"></div>';
+      signalRow.insertAdjacentElement('afterend',block);
+    }
+    if(assessment){assessment.querySelector('span').textContent='Attention';assessment.querySelector('i').textContent='only what matters';}
+    const card=document.getElementById('canSortCard');
+    if(card){const label=card.querySelector('.label');if(label)label.innerHTML='<span class="nigelHead"><span class="nigelPulse"></span><span>Nigel actions</span></span>';}
+  }
+
+  function renderTimeline(){
+    const host=document.getElementById('timelineItems');
+    if(!host||typeof dayState!=='function')return;
+    const s=dayState();
+    const rows=[];
+    s.todayEvents.forEach(e=>rows.push({kind:'event',sort:e.start||'0000',time:e.allDay?'All day':e.start?fmtTime(e.start):'Today',title:e.title,meta:e.calendar||'Calendar'}));
+    s.due.filter(t=>!t.done).slice(0,5).forEach(t=>rows.push({kind:'task',sort:'9999',time:t.due<todayISO()?'Overdue':'Due',title:t.text,meta:t.source||'Task'}));
+    rows.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));
+    host.innerHTML=rows.length?rows.slice(0,7).map(r=>`<div class="timelineItem ${r.kind}"><div class="timelineTime">${esc(r.time)}</div><div><div class="timelineMain">${esc(r.title)}</div><div class="timelineMeta">${esc(r.meta)}</div></div></div>`).join(''):'<div class="timelineEmpty">Nothing fixed in the diary and nothing due today.</div>';
+  }
+
   renameNigelUI();
-  new MutationObserver(renameNigelUI).observe(document.body,{childList:true,subtree:true});
+  installTodayStructure();
+  renderTimeline();
+  new MutationObserver(()=>{renameNigelUI();installTodayStructure();renderTimeline()}).observe(document.body,{childList:true,subtree:true});
+
+  if(typeof render==='function'){
+    const baseRender=render;
+    render=function(){baseRender();renderTimeline();};
+  }
 
   window.researchWithGPT=async id=>{
     const r=state.research.find(x=>x.id===id);if(!r)return;
