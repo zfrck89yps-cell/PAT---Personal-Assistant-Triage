@@ -1,0 +1,42 @@
+:root{--surface:rgba(15,18,27,.42);--surface-strong:rgba(18,22,33,.72);--hairline:rgba(255,255,255,.055)}
+
+/* The briefing is the one intentional hero surface. Everything else breathes. */
+.brief{border:0;background:radial-gradient(circle at 86% 8%,rgba(143,167,255,.17),transparent 34%),linear-gradient(145deg,rgba(22,27,42,.94),rgba(8,11,18,.88));box-shadow:0 28px 80px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.045)}
+.brief:after{opacity:.55}
+
+.signalRow{gap:0;margin:15px 2px 5px;padding:2px 0;background:transparent}
+.signal{border:0;background:transparent;backdrop-filter:none;border-radius:0;padding:13px 16px 14px 17px;overflow:visible}
+.signal+ .signal{border-left:1px solid var(--hairline)}
+.signal:before{left:0;top:15px;bottom:15px;width:1.5px;box-shadow:0 0 12px rgba(126,233,239,.22)}
+.signal span{color:#646d7e}
+.signal b{font-size:14px}
+
+.sectionTitle{margin:24px 4px 8px}
+.sectionTitle span{color:#6d7688}
+
+.insight{border:0;border-radius:18px;background:radial-gradient(circle at 96% 4%,rgba(143,167,255,.10),transparent 34%),linear-gradient(135deg,rgba(18,22,33,.56),rgba(7,10,15,.30));box-shadow:none;padding:19px 18px;margin-bottom:7px}
+.insight:before{right:5px;top:2px;font-size:8px;color:rgba(171,188,255,.22)}
+
+.card{border:0;border-radius:17px;background:rgba(10,13,19,.34);box-shadow:none;backdrop-filter:blur(12px);padding:17px 16px}
+.card.soft{background:transparent;padding-left:4px;padding-right:4px}
+.card.soft .head{margin-bottom:10px}
+
+.attention{gap:8px}
+.chip{border:0;background:rgba(255,255,255,.045);padding:8px 11px;box-shadow:none}
+
+.quick{margin-top:16px;gap:5px;border-top:1px solid var(--hairline);padding-top:13px}
+.quick button{border:0;background:transparent;color:#aeb6c6;border-radius:12px}
+.quick button:active{background:rgba(143,167,255,.08)}
+
+/* Full-list screens can still use surfaces, but no hard boxes. */
+.screen[data-screen="tasks"] .card,.screen[data-screen="capture"] .card,.screen[data-screen="research"] .card,.screen[data-screen="settings"] .card{background:linear-gradient(180deg,rgba(15,18,26,.46),rgba(8,11,16,.30));border:0;border-radius:18px;margin-bottom:9px}
+.researchCard{border:0;background:rgba(255,255,255,.025);border-radius:13px}
+.connection{border-top-color:var(--hairline)}
+.badge{border-color:transparent;background:rgba(255,255,255,.045)}
+.filter{border:0;background:rgba(255,255,255,.035)}
+.filter.active{border:0;background:rgba(143,167,255,.12)}
+
+nav{border:0;background:rgba(8,11,17,.82);box-shadow:0 20px 60px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.045)}
+nav button.active{box-shadow:none;background:rgba(143,167,255,.11)}
+
+@media(max-width:390px){.signalRow{grid-template-columns:1fr 1fr}.signal{padding-left:12px;padding-right:10px}.signal b{font-size:13px}}
