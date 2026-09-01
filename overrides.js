@@ -24,6 +24,51 @@
     });
   }
 
+  function linesBetween(raw,start,end){
+    const a=raw.indexOf(start);if(a<0)return[];
+    const from=a+start.length;
+    const b=raw.indexOf(end,from);
+    const chunk=(b<0?raw.slice(from):raw.slice(from,b)).trim();
+    return chunk?chunk.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):[];
+  }
+
+  function importSimpleSync(){
+    const params=new URLSearchParams(location.search);
+    const raw=params.get('raw');
+    if(!raw)return;
+    try{
+      const titles=linesBetween(raw,'[CALENDAR]','[STARTS]');
+      const starts=linesBetween(raw,'[STARTS]','[REMINDERS]');
+      const reminders=linesBetween(raw,'[REMINDERS]','[MAIL]');
+      const mail=linesBetween(raw,'[MAIL]','[END]');
+      const events=titles.map((title,i)=>({
+        id:`simple-cal-${i}-${title}`,
+        title,
+        start:starts[i]||'',
+        date:todayISO(),
+        allDay:false,
+        calendar:'Apple Calendar'
+      }));
+      const reminderPayload=reminders.map((title,i)=>({
+        id:`simple-rem-${i}-${title}`,
+        title,
+        due:'',
+        done:false,
+        source:'Apple Reminders'
+      }));
+      const mailPayload=mail.map((subject,i)=>({
+        id:`simple-mail-${i}-${subject}`,
+        sender:'',
+        subject,
+        preview:'',
+        unread:true
+      }));
+      importPayload({events,reminders:reminderPayload,mail:mailPayload});
+      history.replaceState({},'',location.pathname);
+      if(typeof toast==='function')toast('PAT synced from iPhone');
+    }catch(e){console.warn('Simple PAT Sync failed',e);if(typeof toast==='function')toast('Sync data could not be read')}
+  }
+
   renameNigelUI();
   new MutationObserver(renameNigelUI).observe(document.body,{childList:true,subtree:true});
 
@@ -44,4 +89,6 @@
     const p=`You are Nigel, my AI personal assistant. PAT has collected my current day below. Give me a concise personal briefing, not a list dump. Tell me what the day looks like, what genuinely matters, what can wait, and what you can actively sort for me now.\n\nCALENDAR\n${ev}\n\nTASKS & REMINDERS\n${tasks}\n\nPOSSIBLE ACTIONS / UNREADS\n${triage}\n\nRESEARCH QUEUE\n${research}\n\nIf you can actively research, compare, draft or plan something now, start doing it.`;
     await copyAndOpen(p,'Briefing handed to Nigel');
   },true);
+
+  importSimpleSync();
 })();
