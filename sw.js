@@ -1,5 +1,5 @@
-const CACHE='pat-v7';
-const ASSETS=['./','index.html','app.js','manifest.json','icon-192.png','icon-512.png'];
+const CACHE='pat-v8';
+const ASSETS=['./','index.html','app.js','sleek.css','overrides.js','manifest.json','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request))) });
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const req=e.request;if(req.mode==='navigate'){e.respondWith(fetch(req).then(async r=>{let html=await r.text();html=html.replace('</head>','<link rel="stylesheet" href="sleek.css?v=8"></head>').replace('</body>','<script src="overrides.js?v=8"></script></body>');return new Response(html,{status:r.status,statusText:r.statusText,headers:{'content-type':'text/html; charset=utf-8'}})}).catch(()=>caches.match('index.html')));return;}e.respondWith(fetch(req).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(req,copy));return r}).catch(()=>caches.match(req))) });
