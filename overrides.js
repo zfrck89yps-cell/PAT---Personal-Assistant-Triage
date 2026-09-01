@@ -1,110 +1,62 @@
 (() => {
   const NIGEL_WEB='https://chatgpt.com/';
   const NIGEL_APP='chatgpt://';
+  const MODE_KEY='pat-mode';
+  const WEATHER_KEY='pat-weather';
+  let patMode=localStorage.getItem(MODE_KEY)||'normal';
 
-  function openNigel(){
-    let left=false;
-    const markLeft=()=>{left=true};
-    document.addEventListener('visibilitychange',()=>{if(document.hidden)markLeft()},{once:true});
-    window.addEventListener('pagehide',markLeft,{once:true});
-    try{window.location.href=NIGEL_APP}catch(e){}
-    setTimeout(()=>{if(!left&&!document.hidden)window.location.href=NIGEL_WEB},900);
-  }
+  function openNigel(){let left=false;const mark=()=>left=true;document.addEventListener('visibilitychange',()=>{if(document.hidden)mark()},{once:true});window.addEventListener('pagehide',mark,{once:true});try{location.href=NIGEL_APP}catch(e){}setTimeout(()=>{if(!left&&!document.hidden)location.href=NIGEL_WEB},900)}
+  async function copyAndOpen(prompt,label='Handed to Nigel'){try{await navigator.clipboard.writeText(prompt);toast(label)}catch(e){toast('Opening Nigel')}openNigel()}
+  function renameNigelUI(){document.querySelectorAll('button').forEach(b=>{const t=(b.textContent||'').trim();if(t==='Ask PAT'||t==='Research with ChatGPT')b.textContent='Ask Nigel'})}
+  function linesBetween(raw,start,end){const a=raw.indexOf(start);if(a<0)return[];const from=a+start.length,b=raw.indexOf(end,from),chunk=(b<0?raw.slice(from):raw.slice(from,b)).trim();return chunk?chunk.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):[]}
 
-  async function copyAndOpen(prompt,label='Handed to Nigel'){
-    try{await navigator.clipboard.writeText(prompt);if(typeof toast==='function')toast(label)}catch(e){if(typeof toast==='function')toast('Opening Nigel')}
-    openNigel();
-  }
+  function importSimpleSync(){const params=new URLSearchParams(location.search),raw=params.get('raw');if(!raw)return;try{const titles=linesBetween(raw,'[CALENDAR]','[STARTS]'),starts=linesBetween(raw,'[STARTS]','[REMINDERS]'),reminders=linesBetween(raw,'[REMINDERS]','[MAIL]'),mail=linesBetween(raw,'[MAIL]','[END]');importPayload({events:titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title,start:starts[i]||'',date:todayISO(),allDay:false,calendar:'Apple Calendar'})),reminders:reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title,due:'',done:false,source:'Apple Reminders'})),mail:mail.map((subject,i)=>({id:`simple-mail-${i}-${subject}`,sender:'',subject,preview:'',unread:true}))});history.replaceState({},'',location.pathname);toast('PAT synced from iPhone')}catch(e){console.warn(e);toast('Sync data could not be read')}}
 
-  function renameNigelUI(){
-    document.querySelectorAll('button').forEach(b=>{
-      const t=(b.textContent||'').trim();
-      if(t==='Ask PAT') b.textContent='Ask Nigel';
-      if(t==='Research with ChatGPT') b.textContent='Ask Nigel';
-    });
-  }
-
-  function linesBetween(raw,start,end){
-    const a=raw.indexOf(start);if(a<0)return[];
-    const from=a+start.length;
-    const b=raw.indexOf(end,from);
-    const chunk=(b<0?raw.slice(from):raw.slice(from,b)).trim();
-    return chunk?chunk.split(/\r?\n/).map(x=>x.trim()).filter(Boolean):[];
-  }
-
-  function importSimpleSync(){
-    const params=new URLSearchParams(location.search);
-    const raw=params.get('raw');
-    if(!raw)return;
-    try{
-      const titles=linesBetween(raw,'[CALENDAR]','[STARTS]');
-      const starts=linesBetween(raw,'[STARTS]','[REMINDERS]');
-      const reminders=linesBetween(raw,'[REMINDERS]','[MAIL]');
-      const mail=linesBetween(raw,'[MAIL]','[END]');
-      const events=titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title,start:starts[i]||'',date:todayISO(),allDay:false,calendar:'Apple Calendar'}));
-      const reminderPayload=reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title,due:'',done:false,source:'Apple Reminders'}));
-      const mailPayload=mail.map((subject,i)=>({id:`simple-mail-${i}-${subject}`,sender:'',subject,preview:'',unread:true}));
-      importPayload({events,reminders:reminderPayload,mail:mailPayload});
-      history.replaceState({},'',location.pathname);
-      if(typeof toast==='function')toast('PAT synced from iPhone');
-    }catch(e){console.warn('Simple PAT Sync failed',e);if(typeof toast==='function')toast('Sync data could not be read')}
-  }
-
-  function installTodayStructure(){
-    const today=document.querySelector('.screen[data-screen="today"]');
-    if(!today||document.getElementById('patTimeline'))return;
+  function installAssistantUI(){const today=document.querySelector('.screen[data-screen="today"]');if(!today)return;
+    const brief=today.querySelector('.brief');
+    if(brief&&!document.getElementById('patModes')){const modes=document.createElement('div');modes.id='patModes';modes.className='patModes';modes.innerHTML=`<button data-mode="normal">Normal</button><button data-mode="quick">Quick wins</button><button data-mode="low">Low energy</button><button data-mode="frog">Get shit done</button>`;brief.insertAdjacentElement('afterend',modes);modes.addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b)return;patMode=b.dataset.mode;localStorage.setItem(MODE_KEY,patMode);renderAssistant();toast(`Mode: ${b.textContent}`)})}
     const signalRow=today.querySelector('.signalRow');
-    const assessment=today.querySelector('.sectionTitle');
-    if(signalRow){
-      const block=document.createElement('section');
-      block.className='patSection';
-      block.id='patTimeline';
-      block.innerHTML='<div class="patSectionHead"><b>Today</b><span>your day at a glance</span></div><div class="timeline" id="timelineItems"></div>';
-      signalRow.insertAdjacentElement('afterend',block);
-    }
-    if(assessment){assessment.querySelector('span').textContent='Attention';assessment.querySelector('i').textContent='only what matters';}
-    const card=document.getElementById('canSortCard');
-    if(card){const label=card.querySelector('.label');if(label)label.innerHTML='<span class="nigelHead"><span class="nigelPulse"></span><span>Nigel actions</span></span>';}
+    if(signalRow&&!document.getElementById('patNow')){const now=document.createElement('section');now.id='patNow';now.className='nowPanel';now.innerHTML='<div class="tinyLabel">What should I do now?</div><div class="nowMain" id="nowMain">Assessing the gap in your day…</div><div class="nowMeta" id="nowMeta"></div>';signalRow.insertAdjacentElement('afterend',now)}
+    if(signalRow&&!document.getElementById('patTimeline')){const block=document.createElement('section');block.className='patSection';block.id='patTimeline';block.innerHTML='<div class="patSectionHead"><b>Today</b><span>your day at a glance</span></div><div class="timeline" id="timelineItems"></div>';document.getElementById('patNow').insertAdjacentElement('afterend',block)}
+    const timeline=document.getElementById('patTimeline');
+    if(timeline&&!document.getElementById('patReality')){const reality=document.createElement('section');reality.id='patReality';reality.className='realityStrip';reality.innerHTML='<div><span>Reality check</span><b id="realityMain">Calculating…</b></div><div class="realityMeter"><i id="realityFill"></i></div>';timeline.insertAdjacentElement('afterend',reality)}
+    const assessment=today.querySelector('.sectionTitle');if(assessment){assessment.querySelector('span').textContent='Attention';assessment.querySelector('i').textContent='only what matters'}
+    const soft=today.querySelector('.card.soft');if(soft&&!document.getElementById('patNudges')){const n=document.createElement('section');n.id='patNudges';n.className='patNudges';n.innerHTML='<div class="patSectionHead"><b>Heads-up</b><span>proactive nudges</span></div><div id="nudgeItems"></div>';soft.insertAdjacentElement('afterend',n)}
+    const card=document.getElementById('canSortCard');if(card){const label=card.querySelector('.label');if(label&&!label.querySelector('.nigelHead'))label.innerHTML='<span class="nigelHead"><span class="nigelPulse"></span><span>Nigel actions</span></span>'}
+
+    const capture=document.querySelector('.screen[data-screen="capture"] .card');
+    if(capture&&!document.getElementById('autoSortBrain')){const btn=document.createElement('button');btn.id='autoSortBrain';btn.className='secondary wideBtn autoSort';btn.textContent='✦ Auto-sort brain dump';capture.querySelector('.captureGrid').insertAdjacentElement('afterend',btn);btn.onclick=autoSortBrain}
+
+    const settings=document.querySelector('.screen[data-screen="settings"] .card');
+    if(settings&&!document.getElementById('weatherConnection')){const row=document.createElement('div');row.className='connection';row.id='weatherConnection';row.innerHTML='<div><strong>Local weather</strong><small>Used only for contextual nudges</small></div><button class="badge" id="weatherButton">Enable</button>';settings.appendChild(row);row.querySelector('button').onclick=enableWeather}
   }
 
-  function renderTimeline(){
-    const host=document.getElementById('timelineItems');
-    if(!host||typeof dayState!=='function')return;
-    const s=dayState();
-    const rows=[];
-    s.todayEvents.forEach(e=>rows.push({kind:'event',sort:e.start||'0000',time:e.allDay?'All day':e.start?fmtTime(e.start):'Today',title:e.title,meta:e.calendar||'Calendar'}));
-    s.due.filter(t=>!t.done).slice(0,5).forEach(t=>rows.push({kind:'task',sort:'9999',time:t.due<todayISO()?'Overdue':'Due',title:t.text,meta:t.source||'Task'}));
-    rows.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));
-    host.innerHTML=rows.length?rows.slice(0,7).map(r=>`<div class="timelineItem ${r.kind}"><div class="timelineTime">${esc(r.time)}</div><div><div class="timelineMain">${esc(r.title)}</div><div class="timelineMeta">${esc(r.meta)}</div></div></div>`).join(''):'<div class="timelineEmpty">Nothing fixed in the diary and nothing due today.</div>';
-  }
+  function minsForTask(t){const text=(t.text||'').toLowerCase();if(/reply|email|message|pay|order|book|call|confirm/.test(text))return 10;if(/research|compare|sort|clean|pack|organise/.test(text))return 35;return t.priority===1?30:20}
+  function rankTasks(tasks){const scored=tasks.map(t=>{let s=0,mins=minsForTask(t);if(t.due&&t.due<todayISO())s+=80;if(t.due===todayISO())s+=50;if(t.priority===1)s+=35;if(patMode==='quick')s+=Math.max(0,35-mins);if(patMode==='low')s+=Math.max(0,30-mins)+( /reply|email|message|pay|order|book|call|confirm/.test((t.text||'').toLowerCase())?25:0);if(patMode==='frog')s+=mins;return{t,s,mins}});return scored.sort((a,b)=>b.s-a.s)}
+  function nextEventInfo(s){const now=Date.now();return s.todayEvents.map(e=>({e,time:e.start?new Date(e.start).getTime():Infinity})).filter(x=>x.time>now).sort((a,b)=>a.time-b.time)[0]||null}
 
-  renameNigelUI();
-  installTodayStructure();
-  renderTimeline();
-  new MutationObserver(()=>{renameNigelUI();installTodayStructure();renderTimeline()}).observe(document.body,{childList:true,subtree:true});
+  function renderTimeline(){const host=document.getElementById('timelineItems');if(!host||typeof dayState!=='function')return;const s=dayState(),rows=[];s.todayEvents.forEach(e=>rows.push({kind:'event',sort:e.start||'0000',time:e.allDay?'All day':e.start?fmtTime(e.start):'Today',title:e.title,meta:e.calendar||'Calendar'}));s.due.filter(t=>!t.done).slice(0,5).forEach(t=>rows.push({kind:'task',sort:'9999',time:t.due<todayISO()?'Overdue':'Due',title:t.text,meta:t.source||'Task'}));rows.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));host.innerHTML=rows.length?rows.slice(0,8).map(r=>`<div class="timelineItem ${r.kind}"><div class="timelineTime">${esc(r.time)}</div><div><div class="timelineMain">${esc(r.title)}</div><div class="timelineMeta">${esc(r.meta)}</div></div></div>`).join(''):'<div class="timelineEmpty">Nothing fixed in the diary and nothing due today.</div>'}
 
-  if(typeof render==='function'){
-    const baseRender=render;
-    render=function(){baseRender();renderTimeline();};
-  }
+  function renderNow(){if(!document.getElementById('nowMain'))return;const s=dayState(),ranked=rankTasks(s.open),next=nextEventInfo(s),now=Date.now(),gap=next?Math.max(0,Math.floor((next.time-now)/60000)):Math.max(0,(20*60)-(new Date().getHours()*60+new Date().getMinutes()));const candidate=ranked.find(x=>x.mins<=Math.max(10,gap-10))||ranked[0];let main='You have breathing room.';let meta=next?`${gap} min until ${next.e.title}`:'No more fixed commitments detected today';if(candidate){main=candidate.t.text;meta=`About ${candidate.mins} min · ${meta}`;if(gap<10&&next)main=`Get ready for ${next.e.title}`}document.getElementById('nowMain').textContent=main;document.getElementById('nowMeta').textContent=meta}
 
-  window.researchWithGPT=async id=>{
-    const r=state.research.find(x=>x.id===id);if(!r)return;
-    const p=`You are Nigel, my AI personal assistant. PAT has handed you this job: ${r.text}. Research it now using current web information where relevant. Give me a concise shortlist, prices and links where applicable, and a clear recommendation. Do the work rather than telling me how to do it.`;
-    await copyAndOpen(p,'Research handed to Nigel');
-  };
+  function renderReality(){if(!document.getElementById('realityMain'))return;const s=dayState(),taskMins=s.due.reduce((n,t)=>n+minsForTask(t),0),now=new Date(),remaining=Math.max(60,(20*60)-(now.getHours()*60+now.getMinutes())),eventMins=s.todayEvents.filter(e=>e.start&&new Date(e.start)>now).length*60,capacity=Math.max(30,remaining-eventMins),ratio=taskMins/capacity;let text='Light day — plenty of room.';if(ratio>.45)text='Manageable, but don’t keep adding jobs.';if(ratio>.8)text='You’re close to capacity.';if(ratio>1.05)text='This day is unrealistic. Something needs moving.';document.getElementById('realityMain').textContent=text;document.getElementById('realityFill').style.width=`${Math.min(100,Math.round(ratio*100))}%`}
 
-  document.addEventListener('click',async e=>{
-    const btn=e.target.closest('[data-action="brief"]');
-    if(!btn)return;
-    e.preventDefault();e.stopImmediatePropagation();
-    const tasks=state.tasks.filter(t=>!t.done).map(t=>`- ${t.text}${t.due?` (due ${t.due})`:''}${t.source?` [${t.source}]`:''}`).join('\n')||'- None';
-    const ev=dayState().todayEvents.map(x=>`- ${x.title} ${x.allDay?'all day':fmtTime(x.start)}`).join('\n')||'- None';
-    const triage=state.triage.sort((a,b)=>(b.score||0)-(a.score||0)).map(t=>`- ${t.title} [${t.source||'PAT'}${t.score?`, score ${t.score}`:''}]`).concat(state.whatsapp.map(w=>`- Unread WhatsApp from ${w.name}`)).join('\n')||'- None';
-    const research=state.research.map(r=>`- ${r.text}`).join('\n')||'- None';
-    const p=`You are Nigel, my AI personal assistant. PAT has collected my current day below. Give me a concise personal briefing, not a list dump. Tell me what the day looks like, what genuinely matters, what can wait, and what you can actively sort for me now.\n\nCALENDAR\n${ev}\n\nTASKS & REMINDERS\n${tasks}\n\nPOSSIBLE ACTIONS / UNREADS\n${triage}\n\nRESEARCH QUEUE\n${research}\n\nIf you can actively research, compare, draft or plan something now, start doing it.`;
-    await copyAndOpen(p,'Briefing handed to Nigel');
-  },true);
+  function weatherData(){try{return JSON.parse(localStorage.getItem(WEATHER_KEY)||'null')}catch(e){return null}}
+  function renderNudges(){const host=document.getElementById('nudgeItems');if(!host)return;const s=dayState(),nudges=[],next=nextEventInfo(s);if(s.overdue.length)nudges.push(`${s.overdue.length} overdue ${plural(s.overdue.length,'job')} — clear one before adding anything else.`);if(next){const mins=Math.floor((next.time-Date.now())/60000);if(mins>=0&&mins<=60)nudges.push(`${next.e.title} is in ${mins} minutes.`)}if(state.whatsapp.length)nudges.push(`${state.whatsapp.map(w=>w.name).slice(0,2).join(' and ')} ${state.whatsapp.length===1?'has':'have'} unread WhatsApp.`);if(s.strongMail.length)nudges.push(`${s.strongMail.length} email ${s.strongMail.length===1?'looks':'look'} actionable.`);const w=weatherData();if(w&&Date.now()-w.saved<3*60*60*1000){if(w.rain>=50)nudges.push(`Rain risk is ${w.rain}% today — worth planning around.`);if(w.temp>=27)nudges.push(`It’s hot today (${Math.round(w.temp)}°C). Don’t schedule the energetic stuff for the hottest bit.`)}host.innerHTML=nudges.length?nudges.slice(0,4).map(x=>`<div class="nudge"><span></span>${esc(x)}</div>`).join(''):'<div class="nudge quiet"><span></span>Nothing worth interrupting you for.</div>'}
+
+  async function enableWeather(){const btn=document.getElementById('weatherButton');if(!navigator.geolocation){toast('Location is unavailable');return}btn.textContent='…';navigator.geolocation.getCurrentPosition(async pos=>{try{const {latitude,longitude}=pos.coords;const url=`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&daily=precipitation_probability_max&timezone=auto&forecast_days=1`;const r=await fetch(url),d=await r.json();localStorage.setItem(WEATHER_KEY,JSON.stringify({temp:d.current?.temperature_2m??0,rain:d.daily?.precipitation_probability_max?.[0]??0,saved:Date.now()}));btn.textContent='Connected';btn.classList.add('ready');renderNudges();toast('Weather connected')}catch(e){btn.textContent='Enable';toast('Weather could not load')}},()=>{btn.textContent='Enable';toast('Location permission not granted')},{enableHighAccuracy:false,timeout:8000})}
+
+  function autoSortBrain(){const box=document.getElementById('brainText'),raw=(box?.value||'').trim();if(!raw)return toast('Nothing to sort');const parts=raw.split(/\n|;|,(?=\s*[A-Za-z])/).map(x=>x.trim()).filter(Boolean);let count=0;parts.forEach(text=>{const l=text.toLowerCase();if(/research|compare|find me|look for|which |best |buy /.test(l)){state.research.unshift({id:crypto.randomUUID(),text,created:Date.now(),source:'Auto-sort'})}else{state.tasks.unshift({id:crypto.randomUUID(),text,due:/today|tonight|urgent/.test(l)?todayISO():'',priority:/urgent|must|important/.test(l)?1:2,done:false,created:Date.now(),source:'Auto-sort'})}count++});box.value='';save();toast(`${count} ${plural(count,'item')} sorted`)}
+
+  function renderAssistant(){installAssistantUI();renameNigelUI();document.querySelectorAll('#patModes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===patMode));renderTimeline();renderNow();renderReality();renderNudges();const wb=document.getElementById('weatherButton'),w=weatherData();if(wb&&w){wb.textContent='Connected';wb.classList.add('ready')}}
+
+  installAssistantUI();renderAssistant();
+  new MutationObserver(()=>{renameNigelUI();installAssistantUI()}).observe(document.body,{childList:true,subtree:true});
+  if(typeof render==='function'){const baseRender=render;render=function(){baseRender();renderAssistant()}}
+
+  window.researchWithGPT=async id=>{const r=state.research.find(x=>x.id===id);if(!r)return;await copyAndOpen(`You are Nigel, my AI personal assistant. PAT has handed you this job: ${r.text}. Research it now using current web information where relevant. Give me a concise shortlist, prices and links where applicable, and a clear recommendation. Do the work rather than telling me how to do it.`,'Research handed to Nigel')};
+
+  document.addEventListener('click',async e=>{const btn=e.target.closest('[data-action="brief"]');if(!btn)return;e.preventDefault();e.stopImmediatePropagation();const tasks=state.tasks.filter(t=>!t.done).map(t=>`- ${t.text}${t.due?` (due ${t.due})`:''}`).join('\n')||'- None',ev=dayState().todayEvents.map(x=>`- ${x.title} ${x.allDay?'all day':fmtTime(x.start)}`).join('\n')||'- None',triage=state.triage.sort((a,b)=>(b.score||0)-(a.score||0)).map(t=>`- ${t.title}`).concat(state.whatsapp.map(w=>`- Unread WhatsApp from ${w.name}`)).join('\n')||'- None',research=state.research.map(r=>`- ${r.text}`).join('\n')||'- None';await copyAndOpen(`You are Nigel, my AI personal assistant. PAT mode is ${patMode}. Give me a concise personal briefing. Tell me what genuinely matters, what can wait, whether the day is realistic, and what you can actively sort for me now.\n\nCALENDAR\n${ev}\n\nTASKS & REMINDERS\n${tasks}\n\nPOSSIBLE ACTIONS / UNREADS\n${triage}\n\nRESEARCH QUEUE\n${research}\n\nDo useful work now rather than just giving instructions.`,'Briefing handed to Nigel')},true);
 
   importSimpleSync();
 })();
