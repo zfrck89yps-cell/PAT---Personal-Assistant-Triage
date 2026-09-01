@@ -1,4 +1,4 @@
-const CACHE='pat-v14';
+const CACHE='pat-v15';
 const ASSETS=['./','index.html','app.js','sleek.css','overrides.js','manifest.json','icon-192.png','icon-512.png'];
 
 self.addEventListener('install',e=>{
