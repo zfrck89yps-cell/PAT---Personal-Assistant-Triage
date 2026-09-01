@@ -3,88 +3,193 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111111" />
+  <meta name="theme-color" content="#090a0d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>PAT — Personal Assistant & Triage</title>
   <style>
-    :root{--bg:#f4f4f2;--card:#fff;--text:#111;--muted:#6f6f6f;--line:#deded9;--accent:#111;--soft:#ecece7;--danger:#a11}
-    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
-    .wrap{max-width:760px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
-    header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
-    h1{font-size:30px;line-height:1;margin:0}.date{color:var(--muted);font-size:14px;margin-top:7px}
-    .pill{border:1px solid var(--line);background:var(--card);padding:8px 11px;border-radius:999px;font-size:13px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.02)}
-    h2{font-size:17px;margin:0 0 12px}.sub{font-size:13px;color:var(--muted);margin-top:-5px;margin-bottom:12px}
-    .row{display:flex;gap:8px}.row>*{flex:1}
-    input,textarea,select{width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;font:inherit;color:var(--text)}
-    textarea{min-height:88px;resize:vertical}
-    button{border:0;border-radius:12px;padding:12px 14px;font:inherit;font-weight:650;background:var(--accent);color:#fff;cursor:pointer}
-    button.secondary{background:var(--soft);color:var(--text)} button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
-    .task{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:11px 0;border-top:1px solid var(--line)} .task:first-child{border-top:0;padding-top:0}
-    .task.done .task-title{text-decoration:line-through;color:var(--muted)}.task-title{font-weight:650}.meta{font-size:12px;color:var(--muted);margin-top:3px}.check{width:22px;height:22px;margin-top:1px}
-    .delete{background:transparent;color:var(--muted);padding:3px 6px;font-size:18px}.empty{color:var(--muted);font-size:14px;padding:4px 0}
-    .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.ai{grid-column:1/-1}
-    .brain-items{margin-top:10px}.brain{padding:10px 0;border-top:1px solid var(--line);font-size:14px}.brain:first-child{border-top:0}
-    footer{color:var(--muted);font-size:12px;text-align:center;margin-top:20px}
-    @media (max-width:520px){.row{flex-direction:column}.actions{grid-template-columns:1fr}.ai{grid-column:auto}}
+    :root{
+      color-scheme:dark;
+      --bg:#090a0d;
+      --bg-2:#0d0f14;
+      --panel:rgba(20,23,31,.82);
+      --panel-strong:#151821;
+      --panel-soft:#11141b;
+      --text:#f5f7fb;
+      --muted:#8e95a3;
+      --muted-2:#626977;
+      --line:rgba(255,255,255,.075);
+      --line-strong:rgba(255,255,255,.12);
+      --accent:#8ea7ff;
+      --accent-2:#b4c2ff;
+      --accent-soft:rgba(142,167,255,.13);
+      --danger:#ff7b83;
+      --shadow:0 18px 45px rgba(0,0,0,.28);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html{background:var(--bg)}
+    body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;background:
+      radial-gradient(circle at 12% -5%,rgba(96,117,214,.18),transparent 34%),
+      radial-gradient(circle at 92% 5%,rgba(80,86,130,.12),transparent 28%),
+      linear-gradient(180deg,#0b0d12 0%,var(--bg) 38%,#08090c 100%);
+      color:var(--text);letter-spacing:-.01em}
+    button,input,textarea,select{font:inherit}
+    button{cursor:pointer}
+    .shell{max-width:780px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 16px calc(92px + env(safe-area-inset-bottom))}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+    .brand{display:flex;align-items:center;gap:13px}
+    .mark{width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#1f2431,#11141b);border:1px solid var(--line-strong);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 24px rgba(0,0,0,.24);font-size:15px;font-weight:800;letter-spacing:.08em}
+    .eyebrow{text-transform:uppercase;letter-spacing:.15em;color:var(--muted-2);font-size:10px;font-weight:700;margin-bottom:4px}
+    h1{font-size:22px;line-height:1.05;margin:0;font-weight:720;letter-spacing:-.025em}
+    .date{color:var(--muted);font-size:13px;margin-top:5px}
+    .status{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:rgba(255,255,255,.035);padding:8px 11px;border-radius:999px;color:#cfd4df;font-size:12px;backdrop-filter:blur(14px)}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px rgba(142,167,255,.75)}
+    .hero{position:relative;overflow:hidden;background:linear-gradient(145deg,rgba(26,30,41,.96),rgba(16,19,26,.94));border:1px solid var(--line-strong);border-radius:24px;padding:22px;box-shadow:var(--shadow);margin-bottom:14px}
+    .hero:after{content:"";position:absolute;right:-42px;top:-48px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(142,167,255,.13),transparent 68%);pointer-events:none}
+    .hero-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+    .section-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:750;color:var(--accent-2)}
+    .hero h2{font-size:25px;margin:5px 0 0;letter-spacing:-.03em}
+    .count-badge{min-width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--accent-soft);border:1px solid rgba(142,167,255,.16);color:var(--accent-2);font-weight:760;font-size:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:17px;backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+    .wide{grid-column:1/-1}
+    .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+    h3{font-size:15px;margin:0;font-weight:700;letter-spacing:-.015em}
+    .sub{font-size:12px;color:var(--muted);line-height:1.45;margin-top:4px}
+    .icon-chip{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.035);border:1px solid var(--line);color:var(--muted);font-size:13px}
+    .field-row{display:grid;grid-template-columns:1fr 120px;gap:9px}
+    .field-row.bottom{grid-template-columns:1fr 98px;margin-top:9px}
+    input,textarea,select{width:100%;border:1px solid var(--line);background:#0d1016;color:var(--text);border-radius:12px;padding:12px 13px;outline:none;transition:.18s border-color,.18s background,.18s box-shadow}
+    input::placeholder,textarea::placeholder{color:#5f6674}
+    input:focus,textarea:focus,select:focus{border-color:rgba(142,167,255,.42);background:#0f1219;box-shadow:0 0 0 3px rgba(142,167,255,.08)}
+    textarea{min-height:100px;resize:vertical;line-height:1.45}
+    select{appearance:none}
+    button{border:0;border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,#9aafff,#7f99fa);color:#090b11;font-weight:760;letter-spacing:-.01em;box-shadow:0 7px 20px rgba(93,119,220,.18);transition:.15s transform,.15s opacity,.15s background}
+    button:active{transform:scale(.985)}
+    button.secondary{background:#1a1e28;color:#e8ebf2;border:1px solid var(--line);box-shadow:none}
+    button.ghost{background:transparent;color:#b6bdca;border:1px solid var(--line);box-shadow:none}
+    .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .action-grid .primary{grid-column:1/-1}
+    .task{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:start;padding:12px 0;border-top:1px solid var(--line)}
+    .task:first-child{border-top:0;padding-top:0}
+    .task:last-child{padding-bottom:0}
+    .task.done .task-title{text-decoration:line-through;color:#676e7a}
+    .task-title{font-size:14px;font-weight:650;line-height:1.35}
+    .meta{font-size:11px;color:var(--muted-2);margin-top:4px}
+    .check{appearance:none;width:20px;height:20px;border-radius:7px;border:1px solid var(--line-strong);background:#0d1016;margin:0;margin-top:1px;display:grid;place-items:center}
+    .check:checked{background:var(--accent);border-color:var(--accent)}
+    .check:checked:after{content:"✓";font-size:12px;font-weight:900;color:#080a10}
+    .delete{background:transparent;color:#555d69;padding:0 3px;box-shadow:none;font-size:18px;line-height:1}
+    .delete:hover{color:var(--danger)}
+    .empty{color:var(--muted-2);font-size:13px;padding:2px 0 1px;line-height:1.45}
+    .brain{padding:11px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.45}
+    .brain:first-child{border-top:0}
+    .brain-items{margin-top:10px}
+    .footer{display:flex;justify-content:space-between;gap:12px;color:#4f5662;font-size:10px;margin-top:20px;padding:0 3px}
+    .bottom-nav{position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(92vw,430px);height:58px;border-radius:18px;border:1px solid var(--line-strong);background:rgba(16,19,26,.9);backdrop-filter:blur(24px);box-shadow:0 14px 45px rgba(0,0,0,.42);display:grid;grid-template-columns:repeat(3,1fr);padding:6px;z-index:20}
+    .nav-item{border:0;background:transparent;box-shadow:none;color:#666e7c;border-radius:12px;padding:4px 8px;font-size:10px;font-weight:650;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+    .nav-item.active{background:#1b1f29;color:#e9edf5}
+    .nav-icon{font-size:15px;line-height:1}
+    @media (max-width:620px){.shell{padding-left:13px;padding-right:13px}.grid{grid-template-columns:1fr}.wide{grid-column:auto}.field-row{grid-template-columns:1fr 112px}.hero{padding:19px;border-radius:22px}.hero h2{font-size:22px}.status{font-size:11px}.action-grid{grid-template-columns:1fr}.action-grid .primary{grid-column:auto}}
+    @media (max-width:390px){.brand-copy .eyebrow{display:none}.mark{width:40px;height:40px}.field-row,.field-row.bottom{grid-template-columns:1fr}.topbar{align-items:flex-start}}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div><h1>PAT</h1><div class="date" style="margin-top:3px">Personal Assistant &amp; Triage</div><div class="date" id="todayDate"></div></div>
-    <div class="pill" id="openCount">0 open</div>
-  </header>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">PAT</div>
+        <div class="brand-copy">
+          <div class="eyebrow">Personal Assistant &amp; Triage</div>
+          <h1>Good morning</h1>
+          <div class="date" id="todayDate"></div>
+        </div>
+      </div>
+      <div class="status"><span class="dot"></span><span id="openCount">0 open</span></div>
+    </header>
 
-  <section class="card">
-    <h2>Today</h2>
-    <div class="sub">The stuff actually worth dealing with.</div>
-    <div id="todayTasks"></div>
-  </section>
+    <section class="hero">
+      <div class="hero-head">
+        <div>
+          <div class="section-kicker">Today</div>
+          <h2>Your priority queue</h2>
+        </div>
+        <div class="count-badge" id="heroCount">0</div>
+      </div>
+      <div id="todayTasks"></div>
+    </section>
 
-  <section class="card">
-    <h2>Add task</h2>
-    <div class="row">
-      <input id="taskText" placeholder="e.g. Buy suitcases" />
-      <select id="priority" aria-label="Priority">
-        <option value="2">Normal</option><option value="1">High</option><option value="3">Low</option>
-      </select>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <input id="dueDate" type="date" />
-      <button id="addTask">Add</button>
-    </div>
-  </section>
+    <section class="grid">
+      <div class="card wide">
+        <div class="card-head">
+          <div><h3>Quick add</h3><div class="sub">Capture it before it disappears into the void.</div></div>
+          <div class="icon-chip">＋</div>
+        </div>
+        <div class="field-row">
+          <input id="taskText" placeholder="What needs sorting?" />
+          <select id="priority" aria-label="Priority">
+            <option value="2">Normal</option><option value="1">High</option><option value="3">Low</option>
+          </select>
+        </div>
+        <div class="field-row bottom">
+          <input id="dueDate" type="date" />
+          <button id="addTask">Add task</button>
+        </div>
+      </div>
 
-  <section class="card">
-    <h2>Brain dump</h2>
-    <div class="sub">Chuck it in here before your brain decides to keep refreshing it every 90 seconds.</div>
-    <textarea id="brainText" placeholder="Need to remember / sort / investigate..."></textarea>
-    <div class="actions">
-      <button id="saveBrain" class="secondary">Save note</button>
-      <button id="brainToTask" class="ghost">Turn into task</button>
-    </div>
-    <div id="brainItems" class="brain-items"></div>
-  </section>
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Brain dump</h3><div class="sub">Loose thoughts, errands and things circling your head.</div></div>
+          <div class="icon-chip">✦</div>
+        </div>
+        <textarea id="brainText" placeholder="Need to remember, sort or investigate..."></textarea>
+        <div class="action-grid">
+          <button id="brainToTask" class="secondary">Make task</button>
+          <button id="saveBrain" class="ghost">Save note</button>
+        </div>
+        <div id="brainItems" class="brain-items"></div>
+      </div>
 
-  <section class="card">
-    <h2>AI help</h2>
-    <div class="sub">Builds a clean prompt from your current tasks, then opens ChatGPT.</div>
-    <div class="actions">
-      <button class="ai" id="aiHandoff">Prepare today for ChatGPT</button>
-      <button class="secondary" id="copyTasks">Copy open tasks</button>
-      <button class="ghost" id="exportData">Export backup</button>
-    </div>
-  </section>
+      <div class="card">
+        <div class="card-head">
+          <div><h3>PAT assist</h3><div class="sub">Package your current context neatly for ChatGPT.</div></div>
+          <div class="icon-chip">AI</div>
+        </div>
+        <div class="action-grid">
+          <button class="primary" id="aiHandoff">Triage my day</button>
+          <button class="secondary" id="copyTasks">Copy tasks</button>
+          <button class="ghost" id="exportData">Backup</button>
+        </div>
+      </div>
 
-  <section class="card">
-    <h2>All tasks</h2>
-    <div id="allTasks"></div>
-  </section>
+      <div class="card wide">
+        <div class="card-head">
+          <div><h3>All tasks</h3><div class="sub">Everything currently on PAT's radar.</div></div>
+          <div class="icon-chip">≡</div>
+        </div>
+        <div id="allTasks"></div>
+      </div>
+    </section>
 
-  <footer>Local-first V1 · your data stays in this browser</footer>
-</div>
-<script src="app.js"></script>
+    <div class="footer"><span>PAT · V1</span><span>Local-first</span></div>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Primary">
+    <button class="nav-item active"><span class="nav-icon">⌂</span><span>Today</span></button>
+    <button class="nav-item"><span class="nav-icon">✓</span><span>Tasks</span></button>
+    <button class="nav-item"><span class="nav-icon">✦</span><span>PAT</span></button>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    const hour=new Date().getHours();
+    const greeting=hour<12?'Good morning':hour<18?'Good afternoon':'Good evening';
+    document.querySelector('h1').textContent=greeting;
+    const syncHero=()=>{const open=(JSON.parse(localStorage.getItem('pat-v1')||'{"tasks":[]}').tasks||[]).filter(t=>!t.done);document.getElementById('heroCount').textContent=open.filter(t=>!t.due||t.due<=new Date().toISOString().slice(0,10)).slice(0,5).length;};
+    syncHero();
+    document.addEventListener('click',()=>setTimeout(syncHero,30));
+  </script>
 </body>
 </html>
