@@ -8,6 +8,7 @@
   const cleanText=v=>{let s=String(v||'').trim().replace(/\s+/g,' ');if(s.length>6&&s.length%2===0){const h=s.length/2;if(s.slice(0,h)===s.slice(h))s=s.slice(0,h)}return s};
   const linesBetween=(raw,start,end)=>{const a=raw.indexOf(start);if(a<0)return[];const from=a+start.length,b=raw.indexOf(end,from),chunk=(b<0?raw.slice(from):raw.slice(from,b)).trim();return chunk?chunk.split(/\r?\n/).map(cleanText).filter(Boolean):[]};
   const minsForTask=t=>/reply|email|message|pay|order|book|call|confirm/i.test(t.text||'')?10:/research|compare|sort|clean|pack|organise/i.test(t.text||'')?35:(t.priority===1?30:20);
+  const localDateFromStart=v=>{if(!v)return todayISO();const d=new Date(v);return isNaN(d)?String(v).slice(0,10):d.toLocaleDateString('en-CA')};
 
   function openNigel(){let left=false;const mark=()=>left=true;document.addEventListener('visibilitychange',()=>{if(document.hidden)mark()},{once:true});window.addEventListener('pagehide',mark,{once:true});try{location.href=NIGEL_APP}catch(e){}setTimeout(()=>{if(!left&&!document.hidden)location.href=NIGEL_WEB},900)}
   async function copyAndOpen(prompt,label){try{await navigator.clipboard.writeText(prompt);toast(label||'Handed to Nigel')}catch(e){toast('Opening Nigel')}openNigel()}
@@ -24,7 +25,7 @@
       const inboxMail=subjects.map((subject,i)=>({subject:cleanText(subject),mailbox:cleanText(mailboxes[i]||'')})).filter(m=>/inbox/i.test(m.mailbox));
       state.tasks=state.tasks.filter(t=>t.source!=='Apple Reminders');
       importPayload({
-        events:titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title:cleanText(title),start:starts[i]||'',date:todayISO(),allDay:false,calendar:'Apple Calendar'})),
+        events:titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title:cleanText(title),start:starts[i]||'',date:localDateFromStart(starts[i]||''),allDay:false,calendar:'Apple Calendar'})),
         reminders:reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title:cleanText(title),due:'',done:false,source:'Apple Reminders'}))
       });
       const keep=state.triage.filter(t=>t.source!=='iCloud Mail');
