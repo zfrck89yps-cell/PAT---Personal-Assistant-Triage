@@ -19,15 +19,25 @@
       const titles=linesBetween(raw,'[CALENDAR]','[STARTS]');
       const starts=linesBetween(raw,'[STARTS]','[REMINDERS]');
       const reminders=linesBetween(raw,'[REMINDERS]','[MAIL]');
-      const mail=linesBetween(raw,'[MAIL]','[END]');
+      const subjects=linesBetween(raw,'[MAIL]','[MAILBOXES]');
+      const mailboxes=linesBetween(raw,'[MAILBOXES]','[END]');
+      const inboxMail=subjects.map((subject,i)=>({subject:cleanText(subject),mailbox:cleanText(mailboxes[i]||'')})).filter(m=>/inbox/i.test(m.mailbox));
       state.tasks=state.tasks.filter(t=>t.source!=='Apple Reminders');
       importPayload({
         events:titles.map((title,i)=>({id:`simple-cal-${i}-${title}`,title:cleanText(title),start:starts[i]||'',date:todayISO(),allDay:false,calendar:'Apple Calendar'})),
-        reminders:reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title:cleanText(title),due:'',done:false,source:'Apple Reminders'})),
-        mail:mail.map((subject,i)=>({id:`simple-mail-${i}-${subject}`,sender:'',subject:cleanText(subject),preview:'',unread:true}))
+        reminders:reminders.map((title,i)=>({id:`simple-rem-${i}-${title}`,title:cleanText(title),due:'',done:false,source:'Apple Reminders'}))
       });
+      const keep=state.triage.filter(t=>t.source!=='iCloud Mail');
+      const syncedMail=inboxMail.map((m,i)=>{
+        const id=`simple-mail-${i}-${m.subject}`;
+        return {id,externalId:id,title:m.subject,source:'iCloud Mail',sender:'',note:'',date:'',score:scoreMail({subject:m.subject,sender:'',preview:'',unread:false}),unread:false,mailbox:m.mailbox};
+      }).sort((a,b)=>(b.score||0)-(a.score||0));
+      state.triage=syncedMail.concat(keep);
+      state.lastMailSync=Date.now();
+      localStorage.setItem('pat-v2',JSON.stringify(state));
+      render();
       history.replaceState({},'',location.pathname);
-      toast('PAT synced from iPhone');
+      toast(`PAT synced · ${syncedMail.length} inbox ${syncedMail.length===1?'email':'emails'}`);
     }catch(e){console.warn('PAT sync failed',e);toast('Sync data could not be read')}
   }
 
