@@ -16,25 +16,19 @@
   function normaliseEventDates(){let changed=false;state.events=(state.events||[]).map(e=>{const d=eventDate(e);if(d&&e.date!==d){changed=true;return{...e,date:d}}return e});if(changed){localStorage.setItem('pat-v2',JSON.stringify(state));if(typeof render==='function')render()}}
   function normaliseMailQueue(){let changed=false;state.triage=(state.triage||[]).map(m=>{if(m.source!=='iCloud Mail'||m.unread!==true)return m;changed=true;return{...m,unread:false,score:Math.max(-5,(Number(m.score)||0)-1)}});if(changed)localStorage.setItem('pat-v2',JSON.stringify(state));const row=[...document.querySelectorAll('.connection')].find(r=>r.querySelector('strong')?.textContent==='iCloud Mail');const note=row?.querySelector('small');if(note)note.textContent='Read + unread · action triage'}
 
-  function simplifyToday(){
-    const today=document.querySelector('.screen[data-screen="today"]');if(!today)return;
-    /* Daily intelligence already tells the story; remove duplicate summary widgets. */
-    document.querySelector('.signalRow')?.remove();
-    document.getElementById('patTimeline')?.remove();
-    document.getElementById('patReality')?.remove();
-    document.querySelector('.sectionTitle')?.remove();
-    document.getElementById('attentionChips')?.remove();
-    document.getElementById('patNudges')?.remove();
-    const pick=document.getElementById('patPick')?.closest('.insight');if(pick)pick.remove();
-    const nigel=document.getElementById('canSortCard');if(nigel){const title=nigel.querySelector('#canSortText');if(title&&state.research?.length===0)title.textContent='Need something sorted? Hand it to Nigel.';const support=nigel.querySelector('.support');if(support)support.textContent='Research, compare, draft or plan without cluttering your Today view.'}
+  function fixTimeAwareBrief(){
+    const host=document.getElementById('dailySummary');if(!host)return;
+    const s=dayState(),h=new Date().getHours(),hasFuture=s.todayEvents.some(e=>!e.start||new Date(e.start).getTime()>=Date.now());
+    if(!s.todayEvents.length||!hasFuture){
+      let first=h<12?'Your morning is clear, so you’ve got room to choose what actually earns attention.':h<18?'Your afternoon is clear, so you’ve got room to choose what actually earns attention.':'Nothing is tying your evening down, so you’ve got room to choose what actually earns attention.';
+      let second=s.overdue.length?`${s.overdue.length} ${s.overdue.length===1?'job has':'jobs have'} slipped overdue; clear one before starting anything new.`:s.due.length?`${s.due.length} ${s.due.length===1?'job is':'jobs are'} due today, but the load looks manageable.`:s.open.length?`Nothing is due, so the ${s.open.length} open ${s.open.length===1?'job is':'jobs are'} optional rather than urgent.`:'There’s no task backlog demanding attention.';
+      if(s.strongMail.length){const top=clean(s.strongMail[0]?.title);second+=s.strongMail.length===1?` One email looks worth checking: ${top}.`:` I found ${s.strongMail.length} emails that may need action; ${top} looks like the best place to start.`}
+      host.textContent=`${first} ${second}`;
+    }
   }
 
+  function simplifyToday(){const today=document.querySelector('.screen[data-screen="today"]');if(!today)return;document.querySelector('.signalRow')?.remove();document.getElementById('patTimeline')?.remove();document.getElementById('patReality')?.remove();document.querySelector('.sectionTitle')?.remove();document.getElementById('attentionChips')?.remove();document.getElementById('patNudges')?.remove();const pick=document.getElementById('patPick')?.closest('.insight');if(pick)pick.remove();const nigel=document.getElementById('canSortCard');if(nigel){const title=nigel.querySelector('#canSortText');if(title&&state.research?.length===0)title.textContent='Need something sorted? Hand it to Nigel.';const support=nigel.querySelector('.support');if(support)support.textContent='Research, compare, draft or plan without cluttering your Today view.'}}
   function installWeek(){if(document.getElementById('patWeek'))return;const anchor=document.getElementById('patNow')||document.getElementById('patModes');if(!anchor)return;const el=document.createElement('section');el.id='patWeek';el.className='patWeek';el.innerHTML='<div class="patSectionHead"><b>Next 7 days</b><span>calendar overview</span></div><div class="weekDays" id="weekDays"></div>';anchor.insertAdjacentElement('afterend',el)}
-  function renderWeek(){
-    normaliseMailQueue();normaliseEventDates();simplifyToday();installWeek();
-    const host=document.getElementById('weekDays');if(!host)return;
-    const today=new Date();today.setHours(0,0,0,0);const days=[];for(let i=0;i<7;i++){const d=new Date(today);d.setDate(today.getDate()+i);days.push(d)}
-    host.innerHTML=days.map((d,i)=>{const key=d.toLocaleDateString('en-CA');const events=(state.events||[]).filter(e=>eventDate(e)===key).sort((a,b)=>String(a.start||'').localeCompare(String(b.start||'')));const name=i===0?'Today':new Intl.DateTimeFormat('en-GB',{weekday:'short'}).format(d);const date=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(d);const body=events.length?events.map(e=>`<div class="weekEvent"><span>${e.allDay?'All day':e.start&&typeof fmtTime==='function'?safe(fmtTime(e.start)):''}</span><b>${safe(clean(e.title))}</b></div>`).join(''):'<div class="weekEmpty">Clear</div>';return `<div class="weekDay ${i===0?'today':''}"><div class="weekDate"><b>${name}</b><span>${date}</span></div><div class="weekEvents">${body}</div></div>`}).join('');
-  }
+  function renderWeek(){normaliseMailQueue();normaliseEventDates();simplifyToday();installWeek();fixTimeAwareBrief();const host=document.getElementById('weekDays');if(!host)return;const today=new Date();today.setHours(0,0,0,0);const days=[];for(let i=0;i<7;i++){const d=new Date(today);d.setDate(today.getDate()+i);days.push(d)}host.innerHTML=days.map((d,i)=>{const key=d.toLocaleDateString('en-CA');const events=(state.events||[]).filter(e=>eventDate(e)===key).sort((a,b)=>String(a.start||'').localeCompare(String(b.start||'')));const name=i===0?'Today':new Intl.DateTimeFormat('en-GB',{weekday:'short'}).format(d);const date=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short'}).format(d);const body=events.length?events.map(e=>`<div class="weekEvent"><span>${e.allDay?'All day':e.start&&typeof fmtTime==='function'?safe(fmtTime(e.start)):''}</span><b>${safe(clean(e.title))}</b></div>`).join(''):'<div class="weekEmpty">Clear</div>';return `<div class="weekDay ${i===0?'today':''}"><div class="weekDate"><b>${name}</b><span>${date}</span></div><div class="weekEvents">${body}</div></div>`}).join('')}
   setTimeout(renderWeek,0);document.addEventListener('click',()=>setTimeout(renderWeek,0),true);document.addEventListener('change',()=>setTimeout(renderWeek,0),true);window.PAT_renderWeek=renderWeek;
 })();
